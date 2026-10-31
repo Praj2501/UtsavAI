@@ -1,0 +1,225 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isEventOwner(eventId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/events/$(eventId)).data.members[request.auth.uid] == 'owner';
+    }
+
+    // In batch writes, parent event doc is created or updated in the same transaction
+    function isEventOwnerAfter(eventId) {
+      return isAuthenticated() &&
+        getAfter(/databases/$(database)/documents/events/$(eventId)).data.members[request.auth.uid] == 'owner';
+    }
+
+    function isValidPublicEvent(data) {
+      return data.keys().hasOnly(['title', 'date', 'city']) &&
+        data.title is string &&
+        data.title.size() >= 2 &&
+        data.title.size() <= 120 &&
+        data.date is string &&
+        data.date.size() == 10 &&
+        data.city is string &&
+        data.city.size() >= 2 &&
+        data.city.size() <= 80;
+    }
+
+    function isValidEvent(data) {
+      return data.keys().hasOnly([
+          'id', 'members', 'title', 'eventType', 'date', 'city',
+          'guestCount', 'totalBudget', 'tradition', 'vibe',
+          'themes', 'planB', 'vendorChecklist', 'createdAt', 'updatedAt'
+        ]) &&
+        data.id is string &&
+        data.id.size() >= 2 &&
+        data.id.size() <= 64 &&
+        data.title is string &&
+        data.title.size() >= 2 &&
+        data.title.size() <= 120 &&
+        data.eventType in ['wedding', 'birthday', 'community'] &&
+        data.date is string &&
+        data.date.size() == 10 &&
+        data.city is string &&
+        data.city.size() >= 2 &&
+        data.city.size() <= 80 &&
+        data.guestCount is number &&
+        data.guestCount >= 1 &&
+        data.guestCount <= 50000 &&
+        data.totalBudget is number &&
+        data.totalBudget >= 0 &&
+        data.tradition is string &&
+        data.tradition.size() <= 80 &&
+        data.vibe is string &&
+        data.vibe.size() <= 120 &&
+        data.themes is list &&
+        data.planB is list &&
+        data.vendorChecklist is list &&
+        data.members is map;
+    }
+
+    function isValidRsvp(data) {
+      return data.keys().hasOnly([
+          'id', 'guestName', 'guestCount', 'attendance',
+          'dietaryPreference', 'note', 'createdAt'
+        ]) &&
+        data.guestName is string &&
+        data.guestName.size() >= 2 &&
+        data.guestName.size() <= 100 &&
+        data.guestCount is number &&
+        data.guestCount >= 1 &&
+        data.guestCount <= 20 &&
+        data.attendance in ['attending', 'declined', 'tentative'] &&
+        data.dietaryPreference in ['veg', 'jain_veg', 'non_veg', 'vegan'] &&
+        (data.note == null || (data.note is string && data.note.size() <= 500)) &&
+        data.createdAt == request.time;
+    }
+
+    function isValidBudgetItem(data) {
+      return data.keys().hasOnly([
+          'id', 'category', 'name', 'allocatedAmount',
+          'actualAmount', 'paidAmount', 'status', 'isLocked', 'rationale', 'updatedAt'
+        ]) &&
+        data.id is string &&
+        data.category is string &&
+        data.category.size() <= 60 &&
+        data.name is string &&
+        data.name.size() <= 100 &&
+        data.allocatedAmount is number &&
+        data.allocatedAmount >= 0 &&
+        data.actualAmount is number &&
+        data.actualAmount >= 0 &&
+        data.paidAmount is number &&
+        data.paidAmount >= 0 &&
+        data.status in ['pending', 'partial', 'paid'] &&
+        data.isLocked is bool &&
+        data.rationale is string &&
+        data.rationale.size() <= 300;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasOnly([
+          'id', 'title', 'category', 'targetDate', 'leadDays',
+          'status', 'priority', 'panicStatus', 'isOverdueAtCreation', 'updatedAt'
+        ]) &&
+        data.id is string &&
+        data.title is string &&
+        data.title.size() <= 120 &&
+        data.category is string &&
+        data.category.size() <= 60 &&
+        data.targetDate is string &&
+        data.targetDate.size() == 10 &&
+        data.leadDays is number &&
+        data.status in ['todo', 'in_progress', 'done'] &&
+        data.priority in ['high', 'medium', 'low'] &&
+        data.panicStatus in ['normal', 'do_now', 'outsource', 'skip'] &&
+        data.isOverdueAtCreation is bool;
+    }
+
+    function isValidVendor(data) {
+      return data.keys().hasOnly([
+          'id', 'category', 'name', 'contactName', 'phone',
+          'email', 'quotedAmount', 'status', 'notes', 'updatedAt'
+        ]) &&
+        data.id is string &&
+        data.category is string &&
+        data.category.size() <= 60 &&
+        data.name is string &&
+        data.name.size() <= 100 &&
+        data.contactName is string &&
+        data.contactName.size() <= 100 &&
+        data.phone is string &&
+        data.phone.size() <= 30 &&
+        data.email is string &&
+        data.email.size() <= 100 &&
+        data.quotedAmount is number &&
+        data.quotedAmount >= 0 &&
+        data.status in ['researching', 'contacted', 'shortlisted', 'booked', 'rejected'] &&
+        data.notes is string &&
+        data.notes.size() <= 500;
+    }
+
+    function isValidRunSheetItem(data) {
+      return data.keys().hasOnly([
+          'id', 'startTime', 'endTime', 'activity',
+          'personInCharge', 'location', 'notes', 'order'
+        ]) &&
+        data.id is string &&
+        data.startTime is string &&
+        data.startTime.size() <= 20 &&
+        data.endTime is string &&
+        data.endTime.size() <= 20 &&
+        data.activity is string &&
+        data.activity.size() <= 150 &&
+        data.personInCharge is string &&
+        data.personInCharge.size() <= 100 &&
+        data.location is string &&
+        data.location.size() <= 100 &&
+        data.notes is string &&
+        data.notes.size() <= 300 &&
+        data.order is number;
+    }
+
+    // Public Events: Public read, owner write (supporting same-batch creation via getAfter)
+    match /publicEvents/{eventId} {
+      allow read: if true;
+      allow create, update, delete: if isEventOwnerAfter(eventId) && isValidPublicEvent(request.resource.data);
+    }
+
+    // Private Events root collection
+    match /events/{eventId} {
+      // Create enforces that creator is marked as sole initial owner
+      allow create: if isAuthenticated() &&
+        request.resource.data.members == { request.auth.uid: 'owner' } &&
+        isValidEvent(request.resource.data);
+
+      // Update must not alter members map
+      allow update: if isAuthenticated() &&
+        resource.data.members[request.auth.uid] == 'owner' &&
+        request.resource.data.members == resource.data.members &&
+        isValidEvent(request.resource.data);
+
+      allow read, delete: if isAuthenticated() &&
+        resource.data.members[request.auth.uid] == 'owner';
+
+      // Subcollections accessible only to event owner
+      match /budgetItems/{itemId} {
+        allow read: if isEventOwner(eventId);
+        allow create, update: if isEventOwner(eventId) && isValidBudgetItem(request.resource.data);
+        allow delete: if isEventOwner(eventId);
+      }
+
+      match /tasks/{taskId} {
+        allow read: if isEventOwner(eventId);
+        allow create, update: if isEventOwner(eventId) && isValidTask(request.resource.data);
+        allow delete: if isEventOwner(eventId);
+      }
+
+      match /vendors/{vendorId} {
+        allow read: if isEventOwner(eventId);
+        allow create, update: if isEventOwner(eventId) && isValidVendor(request.resource.data);
+        allow delete: if isEventOwner(eventId);
+      }
+
+      match /runSheetItems/{runSheetId} {
+        allow read: if isEventOwner(eventId);
+        allow create, update: if isEventOwner(eventId) && isValidRunSheetItem(request.resource.data);
+        allow delete: if isEventOwner(eventId);
+      }
+
+      // Guest RSVP: Public create-only when event exists; owner read-only
+      match /rsvps/{rsvpId} {
+        allow create: if exists(/databases/$(database)/documents/events/$(eventId)) &&
+          isValidRsvp(request.resource.data);
+        allow read: if isEventOwner(eventId);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

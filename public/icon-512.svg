@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <rect width="512" height="512" rx="96" fill="#fffbeb"/>
+  <defs>
+    <linearGradient id="utsavGrad512" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <!-- Decorative Diya Base -->
+  <path d="M80 304 C 80 416, 432 416, 432 304 C 336 336, 176 336, 80 304 Z" fill="url(#utsavGrad512)" stroke="#b45309" stroke-width="16"/>
+  <!-- Diya Rim -->
+  <ellipse cx="256" cy="304" rx="176" ry="32" fill="#fde68a" stroke="#b45309" stroke-width="12"/>
+  <!-- Diya Flame -->
+  <path d="M256 80 C 296 160, 320 208, 256 272 C 192 208, 216 160, 256 80 Z" fill="#ef4444"/>
+  <path d="M256 128 C 280 176, 296 208, 256 248 C 216 208, 232 176, 256 128 Z" fill="#fbbf24"/>
+  <!-- Sparkles -->
+  <circle cx="128" cy="160" r="16" fill="#f59e0b"/>
+  <circle cx="384" cy="144" r="20" fill="#f59e0b"/>
+  <circle cx="416" cy="224" r="12" fill="#d97706"/>
+</svg>
